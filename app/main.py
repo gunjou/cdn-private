@@ -19,11 +19,16 @@ app = FastAPI()
 # --------------------------
 
 BASE_DIR = os.getenv("CDN_BASE_DIR")
-CDN_URL = os.getenv("CDN_URL")
 MAX_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 500)) * 1024  # KB → bytes
 
 # LOCAL ONLY: Allow GET /images/*
 app.mount("/images", StaticFiles(directory=BASE_DIR), name="images")
+
+# CDN URL per service
+CDN_URL_MAP = {
+    "ukaisyndrome": os.getenv("CDN_URL_UKAISYNDROME"),
+    "absensi-berkah": os.getenv("CDN_URL_ABSENSIBERKAH"),
+}
 
 # Allowed API Keys per service
 ALLOWED_KEYS = {
@@ -127,7 +132,11 @@ async def upload_image(
         f.write(processed)
 
     # 11. FINAL URL
-    url = f"{CDN_URL}/{service_name}/{year}/{category}/{unique}"
+    cdn_base_url = CDN_URL_MAP.get(service_name)
+    if not cdn_base_url:
+        raise HTTPException(status_code=500, detail="CDN URL not configured")
+
+    url = f"{cdn_base_url}/{service_name}/{year}/{category}/{unique}"
 
     return {
         "status": True,
