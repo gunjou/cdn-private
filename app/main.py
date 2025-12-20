@@ -34,7 +34,7 @@ ALLOWED_KEYS = {
 # Allowed categories per service
 ALLOWED_CATEGORIES = {
     "ukaisyndrome": ["tryout", "materi"],
-    "absensi-berkah": ["sakit", "izin", "lembur"],
+    "absensi-berkah": ["wajah", "sakit", "izin", "lembur"],
 }
 
 # --------------------------
