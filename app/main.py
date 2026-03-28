@@ -38,7 +38,7 @@ ALLOWED_KEYS = {
 
 # Allowed categories per service
 ALLOWED_CATEGORIES = {
-    "ukaisyndrome": ["tryout", "materi"],
+    "ukaisyndrome": ["tryout", "materi", "assets"],
     "absensi-berkah": ["wajah", "sakit", "izin", "lembur"],
 }
 
@@ -52,16 +52,22 @@ def sanitize_segment(value: str):
     return value
 
 
-def compress_image(image_bytes: bytes) -> bytes:
+def compress_image(image_bytes: bytes, ext: str) -> bytes:
     img = Image.open(io.BytesIO(image_bytes))
-
-    if img.mode in ("RGBA", "P"):
+    
+    save_format = "PNG" if ext == "png" else "JPEG"
+    if save_format == "JPEG" and img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
 
     quality = 85
     while quality > 40:
         buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", optimize=True, quality=quality)
+        
+        if save_format == "PNG":
+            img.save(buffer, format=save_format, optimize=True)
+            return buffer.getvalue()
+        else:
+            img.save(buffer, format=save_format, optimize=True, quality=quality)
 
         if buffer.tell() <= MAX_SIZE:
             return buffer.getvalue()
@@ -113,12 +119,14 @@ async def upload_image(
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
 
     # 8. PROCESS IMAGE
-    if ext in ["jpg", "jpeg", "png"]:
-        processed = compress_image(original_bytes)
-        final_ext = "jpg"
+    original_ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
+    
+    if original_ext in ["jpg", "jpeg", "png"]:
+        final_ext = "png" if original_ext == "png" else "jpg"
+        processed = compress_image(original_bytes, final_ext)
     else:
         processed = original_bytes
-        final_ext = ext
+        final_ext = original_ext
 
     # 9. FINAL FILENAME
     now = datetime.now()
