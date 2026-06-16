@@ -17,30 +17,78 @@ app = FastAPI()
 # --------------------------
 # CONFIG
 # --------------------------
+IMAGE_DIR = os.getenv("CDN_IMAGE_DIR")
+DOCUMENT_DIR = os.getenv("CDN_DOCUMENT_DIR")
 
-BASE_DIR = os.getenv("CDN_BASE_DIR")
-MAX_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 500)) * 1024  # KB → bytes
+MAX_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 500)) * 1024
 
-# LOCAL ONLY: Allow GET /images/*
-app.mount("/images", StaticFiles(directory=BASE_DIR), name="images")
+# Static Files
+app.mount(
+    "/images",
+    StaticFiles(directory=IMAGE_DIR),
+    name="images"
+)
 
-# CDN URL per service
+app.mount(
+    "/documents",
+    StaticFiles(directory=DOCUMENT_DIR),
+    name="documents"
+)
+
+# CDN URL per service image
 CDN_URL_MAP = {
     "ukaisyndrome": os.getenv("CDN_URL_UKAISYNDROME"),
     "absensi-berkah": os.getenv("CDN_URL_ABSENSIBERKAH"),
 }
 
-# Allowed API Keys per service
+# API KEY image service
 ALLOWED_KEYS = {
     "ukaisyndrome": os.getenv("API_KEY_UKAISYNDROME"),
     "absensi-berkah": os.getenv("API_KEY_ABSENSIBERKAH"),
 }
 
-# Allowed categories per service
+# Category image
 ALLOWED_CATEGORIES = {
-    "ukaisyndrome": ["tryout", "materi", "assets"],
-    "absensi-berkah": ["wajah", "sakit", "izin", "lembur"],
+    "ukaisyndrome": [
+        "tryout",
+        "materi",
+        "assets"
+    ],
+    "absensi-berkah": [
+        "wajah",
+        "sakit",
+        "izin",
+        "lembur"
+    ],
 }
+
+# --------------------------
+# DOCUMENT CONFIG
+# --------------------------
+
+DOCUMENT_API_KEY = os.getenv(
+    "API_KEY_WEBBERKAH_DOCUMENT"
+)
+
+DOCUMENT_BASE_URL = os.getenv(
+    "CDN_URL_WEBBERKAH_DOCUMENT"
+)
+
+DOCUMENT_CATEGORIES = [
+    "invoice",
+    "kontrak",
+    "penawaran"
+]
+
+DOCUMENT_EXTENSIONS = [
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx"
+]
+
+MAX_DOCUMENT_SIZE = 10 * 1024 * 1024
 
 # --------------------------
 # HELPERS
@@ -89,62 +137,71 @@ async def upload_image(
     api_key: str = Header(None, alias="X-API-KEY")
 ):
 
-    # 1. API KEY WAJIB DIISI
     if not api_key:
         raise HTTPException(status_code=403, detail="API key required")
 
-    # 2. SERVICE HARUS VALID
     if service_name not in ALLOWED_KEYS:
         raise HTTPException(status_code=403, detail="Invalid service")
 
-    # 3. API KEY HARUS SAMA
     if api_key != ALLOWED_KEYS[service_name]:
         raise HTTPException(status_code=403, detail="Unauthorized API key")
 
-    # 4. CATEGORY HARUS VALID
     if category not in ALLOWED_CATEGORIES.get(service_name, []):
         raise HTTPException(status_code=400, detail="Invalid category")
 
-    # 5. SANITIZE INPUT
     service_name = sanitize_segment(service_name)
     category = sanitize_segment(category)
 
-    # 6. FOLDER STRUCTURE
     year = datetime.now().year
-    folder = f"{BASE_DIR}/{service_name}/{year}/{category}/"
+
+    folder = f"{IMAGE_DIR}/{service_name}/{year}/{category}/"
     os.makedirs(folder, exist_ok=True)
 
-    # 7. READ FILE
     original_bytes = await file.read()
-    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
 
-    # 8. PROCESS IMAGE
-    original_ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
-    
+    original_ext = (
+        file.filename.split(".")[-1].lower()
+        if "." in file.filename
+        else "jpg"
+    )
+
     if original_ext in ["jpg", "jpeg", "png"]:
         final_ext = "png" if original_ext == "png" else "jpg"
-        processed = compress_image(original_bytes, final_ext)
+        processed = compress_image(
+            original_bytes,
+            final_ext
+        )
     else:
         processed = original_bytes
         final_ext = original_ext
 
-    # 9. FINAL FILENAME
-    now = datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
-    unique = f"{timestamp}_{uuid.uuid4()}.{final_ext}"
+    timestamp = datetime.now().strftime(
+        "%Y%m%d_%H%M%S"
+    )
 
-    filepath = os.path.join(folder, unique)
+    unique = (
+        f"{timestamp}_{uuid.uuid4()}.{final_ext}"
+    )
 
-    # 10. SAVE FILE
+    filepath = os.path.join(
+        folder,
+        unique
+    )
+
     with open(filepath, "wb") as f:
         f.write(processed)
 
-    # 11. FINAL URL
-    cdn_base_url = CDN_URL_MAP.get(service_name)
-    if not cdn_base_url:
-        raise HTTPException(status_code=500, detail="CDN URL not configured")
+    cdn_base_url = CDN_URL_MAP.get(
+        service_name
+    )
 
-    url = f"{cdn_base_url}/{service_name}/{year}/{category}/{unique}"
+    url = (
+        f"{cdn_base_url}/"
+        f"{service_name}/"
+        f"{year}/"
+        f"{category}/"
+        f"{unique}"
+    )
 
     return {
         "status": True,
@@ -152,4 +209,109 @@ async def upload_image(
         "size": len(processed),
         "file": unique
     }
-    
+
+
+
+@app.post("/api/upload-document/{category}")
+async def upload_document(
+    category: str,
+    file: UploadFile = File(...),
+    api_key: str = Header(
+        None,
+        alias="X-API-KEY"
+    )
+):
+
+    # API KEY
+    if not api_key:
+        raise HTTPException(
+            status_code=403,
+            detail="API key required"
+        )
+
+    if api_key != DOCUMENT_API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized API key"
+        )
+
+    # CATEGORY
+    category = sanitize_segment(category)
+
+    if category not in DOCUMENT_CATEGORIES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid category"
+        )
+
+    # EXTENSION
+    ext = (
+        file.filename.split(".")[-1].lower()
+        if "." in file.filename
+        else ""
+    )
+
+    if ext not in DOCUMENT_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid document type"
+        )
+
+    # READ FILE
+    contents = await file.read()
+
+    # SIZE LIMIT
+    if len(contents) > MAX_DOCUMENT_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail="Document exceeds maximum size"
+        )
+
+    # FOLDER
+    year = datetime.now().year
+
+    folder = os.path.join(
+        DOCUMENT_DIR,
+        "webberkah",
+        category,
+        str(year)
+    )
+
+    os.makedirs(
+        folder,
+        exist_ok=True
+    )
+
+    # FILE NAME
+    timestamp = datetime.now().strftime(
+        "%Y%m%d_%H%M%S"
+    )
+
+    unique = (
+        f"{timestamp}_{uuid.uuid4()}.{ext}"
+    )
+
+    filepath = os.path.join(
+        folder,
+        unique
+    )
+
+    # SAVE
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    # URL
+    url = (
+        f"{DOCUMENT_BASE_URL}/"
+        f"webberkah/"
+        f"{category}/"
+        f"{year}/"
+        f"{unique}"
+    )
+
+    return {
+        "status": True,
+        "url": url,
+        "size": len(contents),
+        "file": unique
+    }

@@ -4,6 +4,7 @@
 ### Custom Ignore ###
 .env
 storage/images/*
+storage/documents/*
 wallpaper_outlook.jpg
 
 ### Python ###
