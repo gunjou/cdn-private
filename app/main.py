@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 import uuid
@@ -13,6 +14,22 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+
+# --------------------------
+# CORS
+# --------------------------
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    # allow_origins=[
+    #     "http://localhost:3000",
+    #     "https://cashbook.berkahangsana.com",  # production nanti
+    # ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --------------------------
 # CONFIG
