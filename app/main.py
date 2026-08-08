@@ -39,12 +39,14 @@ app.mount(
 CDN_URL_MAP = {
     "ukaisyndrome": os.getenv("CDN_URL_UKAISYNDROME"),
     "absensi-berkah": os.getenv("CDN_URL_ABSENSIBERKAH"),
+    "cashbook-berkah": os.getenv("CDN_URL_CASHBOOKBERKAH"),
 }
 
 # API KEY image service
 ALLOWED_KEYS = {
     "ukaisyndrome": os.getenv("API_KEY_UKAISYNDROME"),
     "absensi-berkah": os.getenv("API_KEY_ABSENSIBERKAH"),
+    "cashbook-berkah": os.getenv("API_KEY_CASHBOOKBERKAH"),
 }
 
 # Category image
@@ -59,6 +61,9 @@ ALLOWED_CATEGORIES = {
         "sakit",
         "izin",
         "lembur"
+    ],
+    "cashbook-berkah": [
+        "cashbook"
     ],
 }
 
