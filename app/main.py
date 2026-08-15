@@ -71,7 +71,8 @@ ALLOWED_CATEGORIES = {
     "ukaisyndrome": [
         "tryout",
         "materi",
-        "assets"
+        "assets",
+        "absensi"
     ],
     "absensi-berkah": [
         "wajah",
