@@ -57,6 +57,7 @@ CDN_URL_MAP = {
     "ukaisyndrome": os.getenv("CDN_URL_UKAISYNDROME"),
     "absensi-berkah": os.getenv("CDN_URL_ABSENSIBERKAH"),
     "cashbook-berkah": os.getenv("CDN_URL_CASHBOOKBERKAH"),
+    "pengajuan-berkah": os.getenv("CDN_URL_PENGAJUANBERKAH"),
 }
 
 # API KEY image service
@@ -64,6 +65,7 @@ ALLOWED_KEYS = {
     "ukaisyndrome": os.getenv("API_KEY_UKAISYNDROME"),
     "absensi-berkah": os.getenv("API_KEY_ABSENSIBERKAH"),
     "cashbook-berkah": os.getenv("API_KEY_CASHBOOKBERKAH"),
+    "pengajuan-berkah": os.getenv("API_KEY_PENGAJUANBERKAH"),
 }
 
 # Category image
@@ -83,6 +85,9 @@ ALLOWED_CATEGORIES = {
     "cashbook-berkah": [
         "cashbook"
     ],
+    "pengajuan-berkah": [
+        "pengajuan"
+    ],
 }
 
 # --------------------------
@@ -100,7 +105,8 @@ DOCUMENT_BASE_URL = os.getenv(
 DOCUMENT_CATEGORIES = [
     "invoice",
     "kontrak",
-    "penawaran"
+    "penawaran",
+    "pengajuan" # ini untuk service pengajuan
 ]
 
 DOCUMENT_EXTENSIONS = [
