@@ -103,9 +103,12 @@ DOCUMENT_BASE_URL = os.getenv(
 )
 
 DOCUMENT_CATEGORIES = [
-    "invoice",
-    "kontrak",
+    "pekerjaan",
     "penawaran",
+    "kontrak",
+    "ba",
+    "invoice",
+    "payment",
     "pengajuan" # ini untuk service pengajuan
 ]
 
